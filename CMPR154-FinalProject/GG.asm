@@ -62,7 +62,7 @@ call Clrscr
 
 
 
-START:					;Could change this to START instead
+START:					
 	mov edx, OFFSET menu
 	call WriteString
 
