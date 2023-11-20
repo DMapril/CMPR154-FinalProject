@@ -1,13 +1,10 @@
 INCLUDE Irvine32.inc
 
 
-;Can split up the data sections for better isolation
 
 .data	;section for messages
 
 getName BYTE "Hello, please enter your name: ", 0
-
-
 
 ;;;;START SECTION
 menu BYTE "*** Syntax Errors ***", 3 DUP(0Ah)
@@ -22,6 +19,7 @@ menu BYTE "*** Syntax Errors ***", 3 DUP(0Ah)
 
 
 ;;;;DISPLAYBALANCE
+currentBalance BYTE "Your available balance is: $", 0
 
 
 
@@ -33,6 +31,14 @@ errorMsg BYTE "Error: Maximum allowable credit is $20.00", 0Ah
 
 
 ;;;;GUESSINGGAME SECTION
+ggBanner BYTE "************* WELCOME TO THE GUESSING GAME ****************", 2 DUP(0Ah), 0
+ggInsufficient BYTE "NOT ENOUGH CREDITS!", 0Ah, "1 ROUND = $1", 2 DUP(0Ah), 0
+ggInputMsg BYTE "Please guess a number between 1 and 10: ", 0
+ggInputError BYTE 0Ah, "Invalid input, must be an integer in range of 1 - 10", 0Ah, 0
+ggWinnerMsg BYTE 2 DUP(0Ah), "CONGRATULATIONS, YOU HAVE WON...$2!", 0
+ggLoserMsg BYTE 2 DUP(0Ah), "YOU LOSE! THANKS FOR THE MONEY!! BETTER LUCK NEXT TIME!!!", 0
+ggAnswer BYTE 2 DUP(0Ah), "The correct number is... ", 0 
+ggTryAgain BYTE 3 DUP(0Ah), "Would you like to try your luck again? (y/n) ", 0
 
 
 
@@ -44,6 +50,15 @@ errorMsg BYTE "Error: Maximum allowable credit is $20.00", 0Ah
 digit BYTE ?			;Menu selection
 balance DWORD 0			;Current balance
 amount DWORD ?			;Deposit amount
+ranNum DWORD ?			;Random number
+ggInput DWORD ?			;User's guess
+ggYesNo BYTE ?			;User response to y/n
+ggPlayed DWORD 0		;Games played
+ggCorrect DWORD 0		;Correct guesses
+ggMiss DWORD 0			;Missed guesses
+ggMoneyW DWORD 0		;Money won
+ggMoneyL DWORD 0		;Money lost
+
 MAX_CHARS = 15			;For easier modification of pName char allowance
 pName BYTE MAX_CHARS + 1 DUP(?)	;Player Name (+1 '?' for null )
 
@@ -56,19 +71,19 @@ mov edx, OFFSET getName
 call WriteString
 
 mov edx, OFFSET pName			;sets edx to starting addr. of pName
-mov ecx, MAX_CHARS			;makes it so 15 chars are read 
+mov ecx, MAX_CHARS				;makes it so 15 chars are read 
 call ReadString
 call Clrscr
 
 
 
-START:					;Could change this to START instead
+START:							
 	mov edx, OFFSET menu
 	call WriteString
 
 
 
-CHOICE:					;User input for menu selection
+CHOICE:							;User input for menu selection
 	call ReadChar
 	mov digit, al
 
@@ -86,13 +101,20 @@ CHOICE:					;User input for menu selection
 	jmp CHOICE
 
 
+
 ;;;;;;;;;;;;;;;;;;;;;;;
 DISPLAYBALANCE:
-	call Clrscr
+	call Clrscr				
 
+	mov edx, OFFSET currentBalance
+	call WriteString
+	mov eax, balance
+	call WriteDec
+	mov al, 0Ah					;Newline before waitmsg
+	call WriteChar
 
 	call WaitMsg
-	call Clrscr
+	call ClrScr
 	jmp START
 ;;;;;;;;;;;;;;;;;;;;;;;;	
 ADDCREDITS:
@@ -122,13 +144,110 @@ ADDCREDITS:
 
 ;;;;;;;;;;;;;;;;;;;;;;;;
 GUESSINGGAME:
+	credit = 1		;Price of game
 	call Clrscr
 
 
-	call WaitMsg
+	CHECKBALANCE:
+		mov eax, balance
+		cmp eax, credit
+		jc NOENTRY
+
+
+	GENERATENUMBER:
+		mov eax,10
+		call Randomize			;re-seed (Without this instruction here the first number generated is always 5.)
+		call RandomRange
+		inc eax
+		mov ranNum, eax
+
+
+	GUESS: 
+		mov edx, OFFSET ggBanner
+		call WriteString
+		mov edx, OFFSET ggInputMsg
+		call WriteString
+		jmp CHECKGUESS
+
+
+	CHECKGUESS:					;ISSUE: valid digit followed by random input is seen as valid i.e., "4+3", "4a" (Forgot solution)
+		call ReadInt			;Might be able to optimize by using "ReadDec" instead 
+		jo INVALIDGUESS			;Overflow flag set if input is a character
+		test eax, eax			;Testing if input is 0 (could use "cmp eax, 0" too)
+		jz INVALIDGUESS
+		mov ggInput, eax
+		mov eax, 10
+		cmp eax, ggInput
+		jc INVALIDGUESS
+
+
+	inc ggPlayed
+	ANSWER:
+		mov edx, OFFSET ggAnswer
+		call WriteString
+		mov eax, 2000
+		call Delay
+		mov eax, ranNum
+		call WriteDec
+		mov al, '!'
+		call WriteChar
+		mov eax, ggInput		;Beginning of valid input checks(Can split from Answer)
+		cmp eax, ranNum
+		jz WINNER
+		jmp LOSER
+	
+
+	INVALIDGUESS:
+		mov edx, OFFSET ggInputError
+		call WriteString
+		call WaitMsg
+		call Clrscr
+		jmp GUESS
+
+
+	WINNER:
+		mov edx, OFFSET ggWinnerMsg
+		call WriteString
+		add balance, credit
+		add ggMoneyW, 2			;Make it not a magic constant?
+		inc ggCorrect
+		jmp TRYAGAIN
+
+
+	LOSER:
+		mov edx, OFFSET ggLoserMsg
+		call WriteString
+		sub balance, credit
+		add ggMoneyL, credit	
+		inc ggMiss
+		jmp TRYAGAIN			;Not necessary
+
+
+	TRYAGAIN:
+		mov edx, OFFSET ggTryAgain
+		call WriteString
+		jmp CHECKCHAR
+
+
+	CHECKCHAR:
+		call ReadChar
+		mov ggYesNo, al
+		cmp ggYesNo, 'y'
+		jz GUESSINGGAME
+		cmp ggYesNo, 'n'
+		jnz CHECKCHAR
+
+
 	call Clrscr
 	jmp START
 
+
+	NOENTRY:
+		mov edx, OFFSET ggInsufficient
+		call WriteString
+		call WaitMsg
+		call Clrscr
+		jmp START
 ;;;;;;;;;;;;;;;;;;;;;;;;
 DISPLAYSTATS:
 	call Clrscr
