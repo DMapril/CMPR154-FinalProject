@@ -71,7 +71,7 @@ mov edx, OFFSET getName
 call WriteString
 
 mov edx, OFFSET pName			;sets edx to starting addr. of pName
-mov ecx, MAX_CHARS				;makes it so 15 chars are read 
+mov ecx, MAX_CHARS			;makes it so 15 chars are read 
 call ReadString
 call Clrscr
 
@@ -83,7 +83,7 @@ START:
 
 
 
-CHOICE:							;User input for menu selection
+CHOICE:					;User input for menu selection
 	call ReadChar
 	mov digit, al
 
@@ -110,7 +110,7 @@ DISPLAYBALANCE:
 	call WriteString
 	mov eax, balance
 	call WriteDec
-	mov al, 0Ah					;Newline before waitmsg
+	mov al, 0Ah			;Newline before waitmsg
 	call WriteChar
 
 	call WaitMsg
@@ -170,7 +170,7 @@ GUESSINGGAME:
 		jmp CHECKGUESS
 
 
-	CHECKGUESS:					;ISSUE: valid digit followed by random input is seen as valid i.e., "4+3", "4a" (Forgot solution)
+	CHECKGUESS:				;ISSUE: valid digit followed by random input is seen as valid i.e., "4+3", "4a" (Forgot solution)
 		call ReadInt			;Might be able to optimize by using "ReadDec" instead 
 		jo INVALIDGUESS			;Overflow flag set if input is a character
 		test eax, eax			;Testing if input is 0 (could use "cmp eax, 0" too)
