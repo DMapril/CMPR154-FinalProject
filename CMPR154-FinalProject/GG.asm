@@ -43,7 +43,14 @@ ggTryAgain BYTE 3 DUP(0Ah), "Would you like to try your luck again? (y/n) ", 0
 
 
 ;;;;DISPLAYSTATS SECTION
-
+statBanner BYTE "************* STAT SCREEN ****************", 3 DUP(0Ah), 0
+playerIntro BYTE "Stats for ", 0
+availCredit BYTE 0Ah,"Available credit: $", 0
+gPlayed BYTE 0Ah, "Games played: ", 0
+cGuess BYTE 0Ah, "Correct guesses: ", 0
+mGuess BYTE 0Ah, "Missed guesses: ", 0
+moneyW BYTE 0Ah, "Money you won: $", 0
+moneyL BYTE 0Ah, "Money you lost: $", 0
 
 
 .data	;section for variables
@@ -249,9 +256,52 @@ GUESSINGGAME:
 		call Clrscr
 		jmp START
 ;;;;;;;;;;;;;;;;;;;;;;;;
-DISPLAYSTATS:
+DISPLAYSTATS: 
 	call Clrscr
+	mov edx, OFFSET statBanner
+	call WriteString
 
+	mov edx, OFFSET playerIntro
+	call WriteString
+
+	mov edx, OFFSET pName
+	call WriteString
+	mov al, 0Ah
+	call WriteChar
+
+
+	mov edx, OFFSET availCredit
+	call WriteString
+	mov eax, balance
+	call WriteDec
+
+	mov edx, OFFSET gPlayed
+	call WriteString
+	mov eax, ggPlayed
+	call WriteDec
+
+	mov edx, OFFSET cGuess
+	call WriteString
+	mov eax, ggCorrect
+	call WriteDec
+
+	mov edx, OFFSET mGuess
+	call WriteString
+	mov eax, ggMiss
+	call WriteDec
+
+	mov edx, OFFSET moneyW
+	call WriteString
+	mov eax, ggMoneyW
+	call WriteDec
+
+	mov edx, OFFSET moneyL
+	call WriteString
+	mov eax, ggMoneyL
+	call WriteDec
+
+	mov al, 0Ah
+	call WriteChar
 
 	call WaitMsg
 	call Clrscr
