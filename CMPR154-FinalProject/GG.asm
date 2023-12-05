@@ -1,3 +1,8 @@
+
+
+
+
+
 INCLUDE Irvine32.inc
 
 
@@ -53,6 +58,10 @@ moneyW BYTE 0Ah, "Money you won: $", 0
 moneyL BYTE 0Ah, "Money you lost: $", 0
 
 
+;;;;EXTRA
+endFormat BYTE 2 DUP(0Ah), 0
+
+
 .data	;section for variables
 digit BYTE ?			;Menu selection
 balance DWORD 0			;Current balance
@@ -78,19 +87,19 @@ mov edx, OFFSET getName
 call WriteString
 
 mov edx, OFFSET pName			;sets edx to starting addr. of pName
-mov ecx, MAX_CHARS			;makes it so 15 chars are read 
+mov ecx, MAX_CHARS			    ;makes it so 15 chars are read 
 call ReadString
 call Clrscr
 
 
 
-START:							
+START:					
 	mov edx, OFFSET menu
 	call WriteString
 
 
 
-CHOICE:					;User input for menu selection
+CHOICE:							;User input for menu selection
 	call ReadChar
 	mov digit, al
 
@@ -117,12 +126,15 @@ DISPLAYBALANCE:
 	call WriteString
 	mov eax, balance
 	call WriteDec
-	mov al, 0Ah			;Newline before waitmsg
-	call WriteChar
+	mov edx, OFFSET endFormat				;Can make a function out of this for re-use
+	call WriteString
 
 	call WaitMsg
 	call ClrScr
 	jmp START
+
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;	
 ADDCREDITS:
 	MAX_AMOUNT = 20 
@@ -132,7 +144,7 @@ ADDCREDITS:
 	call WriteString
 
 	CREDITCHECK:				    
-		call ReadInt			;Alter this to use "ReadDec" instead
+		call ReadInt
 		jo INVALIDAMOUNT
 		mov ecx, MAX_AMOUNT		;Can't have imme(MAX_AMOUNT) as destination in cmp conditional
 		cmp ecx, eax		
@@ -148,6 +160,8 @@ ADDCREDITS:
 		mov edx, OFFSET errorMsg
 		call WriteString
 		jmp CREDITCHECK
+
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;
 GUESSINGGAME:
@@ -177,8 +191,8 @@ GUESSINGGAME:
 		jmp CHECKGUESS
 
 
-	CHECKGUESS:				;ISSUE: valid digit followed by random input is seen as valid i.e., "4+3", "4a" (Forgot solution)
-		call ReadInt			;Might be able to optimize by using "ReadDec" instead 
+	CHECKGUESS:				
+		call ReadDec		
 		jo INVALIDGUESS			;Overflow flag set if input is a character
 		test eax, eax			;Testing if input is 0 (could use "cmp eax, 0" too)
 		jz INVALIDGUESS
@@ -192,7 +206,7 @@ GUESSINGGAME:
 	ANSWER:
 		mov edx, OFFSET ggAnswer
 		call WriteString
-		mov eax, 2000
+		mov eax, 1500
 		call Delay
 		mov eax, ranNum
 		call WriteDec
@@ -216,7 +230,7 @@ GUESSINGGAME:
 		mov edx, OFFSET ggWinnerMsg
 		call WriteString
 		add balance, credit
-		add ggMoneyW, 2			;Make it not a magic constant?
+		add ggMoneyW, 2			;Make it not a magic constant? 2 represents (credit + credit)
 		inc ggCorrect
 		jmp TRYAGAIN
 
@@ -227,7 +241,6 @@ GUESSINGGAME:
 		sub balance, credit
 		add ggMoneyL, credit	
 		inc ggMiss
-		jmp TRYAGAIN			;Not necessary
 
 
 	TRYAGAIN:
@@ -255,6 +268,9 @@ GUESSINGGAME:
 		call WaitMsg
 		call Clrscr
 		jmp START
+
+
+
 ;;;;;;;;;;;;;;;;;;;;;;;;
 DISPLAYSTATS: 
 	call Clrscr
@@ -300,8 +316,8 @@ DISPLAYSTATS:
 	mov eax, ggMoneyL
 	call WriteDec
 
-	mov al, 0Ah
-	call WriteChar
+	mov edx, OFFSET endFormat		
+	call WriteString
 
 	call WaitMsg
 	call Clrscr
